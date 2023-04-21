@@ -1,0 +1,1380 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyPd+6KVM3ery2mmuHLIAUgw",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/Delhi19/Capstone-Project-Battle-of-the-Neighbourhood/blob/main/Crop%20reccomendation\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "XKCL3U9yEpvm"
+      },
+      "outputs": [],
+      "source": [
+        "from __future__ import print_function\n",
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "import seaborn as sns\n",
+        "from sklearn.metrics import classification_report\n",
+        "from sklearn import metrics\n",
+        "from sklearn import tree\n",
+        "import warnings\n",
+        "warnings.filterwarnings('ignore')"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from google.colab import drive\n",
+        "drive.mount('/content/drive')"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "1XdD3KQCOfF6",
+        "outputId": "448b0ee0-8ecd-4d9d-a869-8f13ee36941e"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Mounted at /content/drive\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df = pd.read_csv('/content/drive/MyDrive/Colab Notebooks/Archive/Crop_recommendation .csv')\n",
+        "print(df.describe())\n",
+        "df.head()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 536
+        },
+        "id": "KaML6otpPKcH",
+        "outputId": "68583f4d-8646-4238-cd9c-5c14b948f2da"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "                 N            P            K  temperature     humidity  \\\n",
+            "count  2200.000000  2200.000000  2200.000000  2200.000000  2200.000000   \n",
+            "mean     50.551818    53.362727    48.149091    25.616244    71.481779   \n",
+            "std      36.917334    32.985883    50.647931     5.063749    22.263812   \n",
+            "min       0.000000     5.000000     5.000000     8.825675    14.258040   \n",
+            "25%      21.000000    28.000000    20.000000    22.769375    60.261953   \n",
+            "50%      37.000000    51.000000    32.000000    25.598693    80.473146   \n",
+            "75%      84.250000    68.000000    49.000000    28.561654    89.948771   \n",
+            "max     140.000000   145.000000   205.000000    43.675493    99.981876   \n",
+            "\n",
+            "                ph     rainfall  \n",
+            "count  2200.000000  2200.000000  \n",
+            "mean      6.469480   103.463655  \n",
+            "std       0.773938    54.958389  \n",
+            "min       3.504752    20.211267  \n",
+            "25%       5.971693    64.551686  \n",
+            "50%       6.425045    94.867624  \n",
+            "75%       6.923643   124.267508  \n",
+            "max       9.935091   298.560117  \n"
+          ]
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "    N   P   K  temperature   humidity        ph    rainfall label\n",
+              "0  90  42  43    20.879744  82.002744  6.502985  202.935536  rice\n",
+              "1  85  58  41    21.770462  80.319644  7.038096  226.655537  rice\n",
+              "2  60  55  44    23.004459  82.320763  7.840207  263.964248  rice\n",
+              "3  74  35  40    26.491096  80.158363  6.980401  242.864034  rice\n",
+              "4  78  42  42    20.130175  81.604873  7.628473  262.717340  rice"
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-fbb62a9a-0c7d-46b8-b9e4-0e0dbe38cc29\">\n",
+              "    <div class=\"colab-df-container\">\n",
+              "      <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>N</th>\n",
+              "      <th>P</th>\n",
+              "      <th>K</th>\n",
+              "      <th>temperature</th>\n",
+              "      <th>humidity</th>\n",
+              "      <th>ph</th>\n",
+              "      <th>rainfall</th>\n",
+              "      <th>label</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>90</td>\n",
+              "      <td>42</td>\n",
+              "      <td>43</td>\n",
+              "      <td>20.879744</td>\n",
+              "      <td>82.002744</td>\n",
+              "      <td>6.502985</td>\n",
+              "      <td>202.935536</td>\n",
+              "      <td>rice</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>85</td>\n",
+              "      <td>58</td>\n",
+              "      <td>41</td>\n",
+              "      <td>21.770462</td>\n",
+              "      <td>80.319644</td>\n",
+              "      <td>7.038096</td>\n",
+              "      <td>226.655537</td>\n",
+              "      <td>rice</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>60</td>\n",
+              "      <td>55</td>\n",
+              "      <td>44</td>\n",
+              "      <td>23.004459</td>\n",
+              "      <td>82.320763</td>\n",
+              "      <td>7.840207</td>\n",
+              "      <td>263.964248</td>\n",
+              "      <td>rice</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>74</td>\n",
+              "      <td>35</td>\n",
+              "      <td>40</td>\n",
+              "      <td>26.491096</td>\n",
+              "      <td>80.158363</td>\n",
+              "      <td>6.980401</td>\n",
+              "      <td>242.864034</td>\n",
+              "      <td>rice</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>78</td>\n",
+              "      <td>42</td>\n",
+              "      <td>42</td>\n",
+              "      <td>20.130175</td>\n",
+              "      <td>81.604873</td>\n",
+              "      <td>7.628473</td>\n",
+              "      <td>262.717340</td>\n",
+              "      <td>rice</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>\n",
+              "      <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-fbb62a9a-0c7d-46b8-b9e4-0e0dbe38cc29')\"\n",
+              "              title=\"Convert this dataframe to an interactive table.\"\n",
+              "              style=\"display:none;\">\n",
+              "        \n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\"viewBox=\"0 0 24 24\"\n",
+              "       width=\"24px\">\n",
+              "    <path d=\"M0 0h24v24H0V0z\" fill=\"none\"/>\n",
+              "    <path d=\"M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z\"/><path d=\"M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z\"/>\n",
+              "  </svg>\n",
+              "      </button>\n",
+              "      \n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      flex-wrap:wrap;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "      <script>\n",
+              "        const buttonEl =\n",
+              "          document.querySelector('#df-fbb62a9a-0c7d-46b8-b9e4-0e0dbe38cc29 button.colab-df-convert');\n",
+              "        buttonEl.style.display =\n",
+              "          google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "        async function convertToInteractive(key) {\n",
+              "          const element = document.querySelector('#df-fbb62a9a-0c7d-46b8-b9e4-0e0dbe38cc29');\n",
+              "          const dataTable =\n",
+              "            await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                     [key], {});\n",
+              "          if (!dataTable) return;\n",
+              "\n",
+              "          const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "            '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "            + ' to learn more about interactive tables.';\n",
+              "          element.innerHTML = '';\n",
+              "          dataTable['output_type'] = 'display_data';\n",
+              "          await google.colab.output.renderOutput(dataTable, element);\n",
+              "          const docLink = document.createElement('div');\n",
+              "          docLink.innerHTML = docLinkHtml;\n",
+              "          element.appendChild(docLink);\n",
+              "        }\n",
+              "      </script>\n",
+              "    </div>\n",
+              "  </div>\n",
+              "  "
+            ]
+          },
+          "metadata": {},
+          "execution_count": 3
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df.size"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "_eAMBLQoUPmZ",
+        "outputId": "06c157ac-9d79-43e2-d8c9-3618492557dd"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "17600"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 4
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df.shape"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "UUM4keZuURXn",
+        "outputId": "49c34abe-9da4-40f8-93cc-769f47936882"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(2200, 8)"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 5
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df.columns"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "A1vD2r9_UTMQ",
+        "outputId": "55350d7b-486b-46c8-8240-f1782426a5e4"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "Index(['N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall', 'label'], dtype='object')"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 6
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df['label'].unique()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "0m_tXfieUVuY",
+        "outputId": "287445b9-4f14-4032-9cf8-7c32f9391250"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array(['rice', 'maize', 'chickpea', 'kidneybeans', 'pigeonpeas',\n",
+              "       'mothbeans', 'mungbean', 'blackgram', 'lentil', 'pomegranate',\n",
+              "       'banana', 'mango', 'grapes', 'watermelon', 'muskmelon', 'apple',\n",
+              "       'orange', 'papaya', 'coconut', 'cotton', 'jute', 'coffee'],\n",
+              "      dtype=object)"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 7
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df.dtypes"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "U01mFxMZUXSZ",
+        "outputId": "46c3914f-1cfc-4244-cdb7-ef528e865536"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "N                int64\n",
+              "P                int64\n",
+              "K                int64\n",
+              "temperature    float64\n",
+              "humidity       float64\n",
+              "ph             float64\n",
+              "rainfall       float64\n",
+              "label           object\n",
+              "dtype: object"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 8
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [],
+      "metadata": {
+        "id": "QP0XaiXFCSm_"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df['label'].value_counts()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "V2XnD6-rUY05",
+        "outputId": "318872e1-12f4-4568-9fe3-7139802c1a45"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "rice           100\n",
+              "maize          100\n",
+              "jute           100\n",
+              "cotton         100\n",
+              "coconut        100\n",
+              "papaya         100\n",
+              "orange         100\n",
+              "apple          100\n",
+              "muskmelon      100\n",
+              "watermelon     100\n",
+              "grapes         100\n",
+              "mango          100\n",
+              "banana         100\n",
+              "pomegranate    100\n",
+              "lentil         100\n",
+              "blackgram      100\n",
+              "mungbean       100\n",
+              "mothbeans      100\n",
+              "pigeonpeas     100\n",
+              "kidneybeans    100\n",
+              "chickpea       100\n",
+              "coffee         100\n",
+              "Name: label, dtype: int64"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 9
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "features = df[['N', 'P','K','temperature', 'humidity', 'ph', 'rainfall']]\n",
+        "target = df['label']\n",
+        "#features = df[['temperature', 'humidity', 'ph', 'rainfall']]\n",
+        "labels = df['label']"
+      ],
+      "metadata": {
+        "id": "Dt1xPbh5Ue0A"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Initialzing empty lists to append all model's name and corresponding name\n",
+        "acc = []\n",
+        "model = []"
+      ],
+      "metadata": {
+        "id": "4c_4XBOrUjfx"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.model_selection import train_test_split\n",
+        "Xtrain, Xtest, Ytrain, Ytest = train_test_split(features,target,test_size = 0.2,random_state =2,stratify = labels)"
+      ],
+      "metadata": {
+        "id": "_904-vz_UmqK"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Descion Tree"
+      ],
+      "metadata": {
+        "id": "oS5X4DQCVEjw"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.tree import DecisionTreeClassifier\n",
+        "\n",
+        "DecisionTree = DecisionTreeClassifier(criterion=\"entropy\",random_state=2,max_depth=5)\n",
+        "\n",
+        "DecisionTree.fit(Xtrain,Ytrain)\n",
+        "\n",
+        "predicted_values = DecisionTree.predict(Xtest)\n",
+        "x = metrics.accuracy_score(Ytest, predicted_values)\n",
+        "acc.append(x)\n",
+        "model.append('Decision Tree')\n",
+        "print(\"DecisionTrees's Accuracy is: \", x*100)\n",
+        "\n",
+        "print(classification_report(Ytest,predicted_values))"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "4RKf7lsVVBp7",
+        "outputId": "b474c737-4177-42b1-c5a1-8431380f0d5f"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "DecisionTrees's Accuracy is:  92.04545454545455\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "       apple       1.00      1.00      1.00        20\n",
+            "      banana       0.95      1.00      0.98        20\n",
+            "   blackgram       0.59      1.00      0.74        20\n",
+            "    chickpea       1.00      1.00      1.00        20\n",
+            "     coconut       1.00      1.00      1.00        20\n",
+            "      coffee       1.00      0.95      0.97        20\n",
+            "      cotton       1.00      1.00      1.00        20\n",
+            "      grapes       1.00      1.00      1.00        20\n",
+            "        jute       1.00      0.30      0.46        20\n",
+            " kidneybeans       1.00      0.70      0.82        20\n",
+            "      lentil       0.90      0.90      0.90        20\n",
+            "       maize       0.95      1.00      0.98        20\n",
+            "       mango       1.00      0.95      0.97        20\n",
+            "   mothbeans       0.83      0.50      0.62        20\n",
+            "    mungbean       1.00      1.00      1.00        20\n",
+            "   muskmelon       1.00      1.00      1.00        20\n",
+            "      orange       1.00      1.00      1.00        20\n",
+            "      papaya       1.00      0.95      0.97        20\n",
+            "  pigeonpeas       0.95      1.00      0.98        20\n",
+            " pomegranate       1.00      1.00      1.00        20\n",
+            "        rice       0.59      1.00      0.74        20\n",
+            "  watermelon       1.00      1.00      1.00        20\n",
+            "\n",
+            "    accuracy                           0.92       440\n",
+            "   macro avg       0.94      0.92      0.92       440\n",
+            "weighted avg       0.94      0.92      0.92       440\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.model_selection import cross_val_score"
+      ],
+      "metadata": {
+        "id": "T_6ajxcTVMV_"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Cross validation score (Decision Tree)\n",
+        "score = cross_val_score(DecisionTree, features, target,cv=5)"
+      ],
+      "metadata": {
+        "id": "fEzHwAKNVO-x"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "score"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "OcSgcqdQVRdZ",
+        "outputId": "456434cb-fc76-45b3-fb5c-cea06cb6cb6a"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([0.93636364, 0.90909091, 0.91818182, 0.87045455, 0.93636364])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 16
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Saving trained Decision Tree model"
+      ],
+      "metadata": {
+        "id": "q9VE_D4spEoT"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import pickle\n",
+        "# Dump the trained Naive Bayes classifier with Pickle\n",
+        "DT_pkl_filename =( '/content/drive/MyDrive/Colab Notebooks/Archive/DecisionTree.pkl')\n",
+        "# Open the file to save as pkl file\n",
+        "DT_Model_pkl = open(DT_pkl_filename, 'wb')\n",
+        "pickle.dump(DecisionTree, DT_Model_pkl)\n",
+        "# Close the pickle instances\n",
+        "DT_Model_pkl.close()"
+      ],
+      "metadata": {
+        "id": "VrpkqpWNpC0M"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Support Vector Machine (SVM)"
+      ],
+      "metadata": {
+        "id": "mRLYKqM8tfc8"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.svm import SVC\n",
+        "# data normalization with sklearn\n",
+        "from sklearn.preprocessing import MinMaxScaler\n",
+        "# fit scaler on training data\n",
+        "norm = MinMaxScaler().fit(Xtrain)\n",
+        "X_train_norm = norm.transform(Xtrain)\n",
+        "# transform testing dataabs\n",
+        "X_test_norm = norm.transform(Xtest)\n",
+        "SVM = SVC(kernel='poly', degree=3, C=1)\n",
+        "SVM.fit(X_train_norm,Ytrain)\n",
+        "predicted_values = SVM.predict(X_test_norm)\n",
+        "x = metrics.accuracy_score(Ytest, predicted_values)\n",
+        "acc.append(x)\n",
+        "model.append('SVM')\n",
+        "print(\"SVM's Accuracy is: \", x)\n",
+        "\n",
+        "print(classification_report(Ytest,predicted_values))"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "eiNqXxG5te67",
+        "outputId": "305f612f-9628-4921-c8b8-7af3ae1594e3"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "SVM's Accuracy is:  0.990909090909091\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "       apple       1.00      1.00      1.00        20\n",
+            "      banana       1.00      1.00      1.00        20\n",
+            "   blackgram       1.00      1.00      1.00        20\n",
+            "    chickpea       1.00      1.00      1.00        20\n",
+            "     coconut       1.00      1.00      1.00        20\n",
+            "      coffee       1.00      1.00      1.00        20\n",
+            "      cotton       0.95      1.00      0.98        20\n",
+            "      grapes       1.00      1.00      1.00        20\n",
+            "        jute       0.95      0.95      0.95        20\n",
+            " kidneybeans       1.00      1.00      1.00        20\n",
+            "      lentil       1.00      0.95      0.97        20\n",
+            "       maize       1.00      0.95      0.97        20\n",
+            "       mango       1.00      1.00      1.00        20\n",
+            "   mothbeans       0.95      1.00      0.98        20\n",
+            "    mungbean       1.00      1.00      1.00        20\n",
+            "   muskmelon       1.00      1.00      1.00        20\n",
+            "      orange       1.00      1.00      1.00        20\n",
+            "      papaya       1.00      1.00      1.00        20\n",
+            "  pigeonpeas       1.00      1.00      1.00        20\n",
+            " pomegranate       1.00      1.00      1.00        20\n",
+            "        rice       0.95      0.95      0.95        20\n",
+            "  watermelon       1.00      1.00      1.00        20\n",
+            "\n",
+            "    accuracy                           0.99       440\n",
+            "   macro avg       0.99      0.99      0.99       440\n",
+            "weighted avg       0.99      0.99      0.99       440\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Cross validation score (SVM)\n",
+        "score = cross_val_score(SVM,features,target,cv=5)\n",
+        "score"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "OR-Tdm6Utlvd",
+        "outputId": "57526d1f-ae4e-4b1a-e504-f8665d685df0"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([0.97954545, 0.975     , 0.98863636, 0.98863636, 0.98181818])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 19
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#Saving trained SVM model\n"
+      ],
+      "metadata": {
+        "id": "5Ej-dOqbufcz"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import pickle\n",
+        "# Dump the trained SVM classifier with Pickle\n",
+        "SVM_pkl_filename = ('/content/drive/MyDrive/Colab Notebooks/Archive/SVMClassifier.pkl')\n",
+        "# Open the file to save as pkl file\n",
+        "SVM_Model_pkl = open(SVM_pkl_filename, 'wb')\n",
+        "pickle.dump(SVM, SVM_Model_pkl)\n",
+        "# Close the pickle instances\n",
+        "SVM_Model_pkl.close()"
+      ],
+      "metadata": {
+        "id": "UAbOwq2UugrZ"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Logistic Regression"
+      ],
+      "metadata": {
+        "id": "ChcxHWaduw60"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.linear_model import LogisticRegression\n",
+        "\n",
+        "LogReg = LogisticRegression(random_state=2)\n",
+        "\n",
+        "LogReg.fit(Xtrain,Ytrain)\n",
+        "\n",
+        "predicted_values = LogReg.predict(Xtest)\n",
+        "\n",
+        "x = metrics.accuracy_score(Ytest, predicted_values)\n",
+        "acc.append(x)\n",
+        "model.append('Logistic Regression')\n",
+        "print(\"Logistic Regression's Accuracy is: \", x)\n",
+        "\n",
+        "print(classification_report(Ytest,predicted_values))"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "BrgtJLR_usdd",
+        "outputId": "c28f24a1-cdb5-4b3b-ab98-8f9e1885b89f"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Logistic Regression's Accuracy is:  0.9636363636363636\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "       apple       1.00      1.00      1.00        20\n",
+            "      banana       0.95      1.00      0.98        20\n",
+            "   blackgram       0.83      0.95      0.88        20\n",
+            "    chickpea       1.00      1.00      1.00        20\n",
+            "     coconut       1.00      1.00      1.00        20\n",
+            "      coffee       1.00      1.00      1.00        20\n",
+            "      cotton       0.95      0.95      0.95        20\n",
+            "      grapes       1.00      1.00      1.00        20\n",
+            "        jute       0.86      0.95      0.90        20\n",
+            " kidneybeans       1.00      1.00      1.00        20\n",
+            "      lentil       1.00      0.85      0.92        20\n",
+            "       maize       0.95      0.90      0.92        20\n",
+            "       mango       1.00      1.00      1.00        20\n",
+            "   mothbeans       0.88      0.75      0.81        20\n",
+            "    mungbean       0.91      1.00      0.95        20\n",
+            "   muskmelon       1.00      1.00      1.00        20\n",
+            "      orange       1.00      1.00      1.00        20\n",
+            "      papaya       1.00      0.95      0.97        20\n",
+            "  pigeonpeas       0.95      1.00      0.98        20\n",
+            " pomegranate       1.00      1.00      1.00        20\n",
+            "        rice       0.95      0.90      0.92        20\n",
+            "  watermelon       1.00      1.00      1.00        20\n",
+            "\n",
+            "    accuracy                           0.96       440\n",
+            "   macro avg       0.97      0.96      0.96       440\n",
+            "weighted avg       0.97      0.96      0.96       440\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "score = cross_val_score(LogReg,features,target,cv=5)\n",
+        "score"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "_LPIlP7lu3F7",
+        "outputId": "2f793584-1d94-4bbd-bb01-8623c119cb22"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([0.95      , 0.96590909, 0.94772727, 0.96590909, 0.94318182])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 22
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Saving trained Logistic Regression model"
+      ],
+      "metadata": {
+        "id": "HM35rM1Zu7pw"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import pickle\n",
+        "# Dump the trained Naive Bayes classifier with Pickle\n",
+        "LR_pkl_filename = ('/content/drive/MyDrive/Colab Notebooks/Archive/LogisticRegression.pkl')\n",
+        "# Open the file to save as pkl file\n",
+        "LR_Model_pkl = open(DT_pkl_filename, 'wb')\n",
+        "pickle.dump(LogReg, LR_Model_pkl)\n",
+        "# Close the pickle instances\n",
+        "LR_Model_pkl.close()"
+      ],
+      "metadata": {
+        "id": "yLrnEeTCu-6q"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Random Forest"
+      ],
+      "metadata": {
+        "id": "7scPJpTbvJb5"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.ensemble import RandomForestClassifier\n",
+        "\n",
+        "RF = RandomForestClassifier(n_estimators=20, random_state=0)\n",
+        "RF.fit(Xtrain,Ytrain)\n",
+        "\n",
+        "predicted_values = RF.predict(Xtest)\n",
+        "\n",
+        "x = metrics.accuracy_score(Ytest, predicted_values)\n",
+        "acc.append(x)\n",
+        "model.append('RF')\n",
+        "print(\"RF's Accuracy is: \", x)\n",
+        "\n",
+        "print(classification_report(Ytest,predicted_values))"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "dyuYyXFwvHDB",
+        "outputId": "d2519873-e08e-4acd-f375-a6dc857dd84d"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "RF's Accuracy is:  0.9977272727272727\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "       apple       1.00      1.00      1.00        20\n",
+            "      banana       1.00      1.00      1.00        20\n",
+            "   blackgram       1.00      1.00      1.00        20\n",
+            "    chickpea       1.00      1.00      1.00        20\n",
+            "     coconut       1.00      1.00      1.00        20\n",
+            "      coffee       1.00      1.00      1.00        20\n",
+            "      cotton       1.00      1.00      1.00        20\n",
+            "      grapes       1.00      1.00      1.00        20\n",
+            "        jute       0.95      1.00      0.98        20\n",
+            " kidneybeans       1.00      1.00      1.00        20\n",
+            "      lentil       1.00      1.00      1.00        20\n",
+            "       maize       1.00      1.00      1.00        20\n",
+            "       mango       1.00      1.00      1.00        20\n",
+            "   mothbeans       1.00      1.00      1.00        20\n",
+            "    mungbean       1.00      1.00      1.00        20\n",
+            "   muskmelon       1.00      1.00      1.00        20\n",
+            "      orange       1.00      1.00      1.00        20\n",
+            "      papaya       1.00      1.00      1.00        20\n",
+            "  pigeonpeas       1.00      1.00      1.00        20\n",
+            " pomegranate       1.00      1.00      1.00        20\n",
+            "        rice       1.00      0.95      0.97        20\n",
+            "  watermelon       1.00      1.00      1.00        20\n",
+            "\n",
+            "    accuracy                           1.00       440\n",
+            "   macro avg       1.00      1.00      1.00       440\n",
+            "weighted avg       1.00      1.00      1.00       440\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Cross validation score (Random Forest)\n",
+        "score = cross_val_score(RF,features,target,cv=5)\n",
+        "score"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "X6Z8RKL1vSDs",
+        "outputId": "40b16f36-0cb2-420c-b91d-1e919aa086a1"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([0.99772727, 0.99545455, 0.99772727, 0.99318182, 0.98863636])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 25
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Saving trained Random Forest model"
+      ],
+      "metadata": {
+        "id": "Kn4omnQhvo-8"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import pickle\n",
+        "# Dump the trained Naive Bayes classifier with Pickle\n",
+        "RF_pkl_filename =( '/content/drive/MyDrive/Colab Notebooks/Archive/RandomForest.pkl')\n",
+        "# Open the file to save as pkl file\n",
+        "RF_Model_pkl = open(RF_pkl_filename, 'wb')\n",
+        "pickle.dump(RF, RF_Model_pkl)\n",
+        "# Close the pickle instances\n",
+        "RF_Model_pkl.close()"
+      ],
+      "metadata": {
+        "id": "M5KEqsEuvrcU"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "XG Boost \n"
+      ],
+      "metadata": {
+        "id": "Ibx-k5ECyizM"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.preprocessing import LabelEncoder\n",
+        "le = LabelEncoder()\n",
+        "Ytrain = le.fit_transform(Ytrain)\n",
+        "Ytest = le.fit_transform(Ytest)"
+      ],
+      "metadata": {
+        "id": "aC3osmjd2ZYS"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import xgboost as xgb\n",
+        "XB = xgb.XGBClassifier()\n",
+        "XB.fit(Xtrain,Ytrain)\n",
+        "\n",
+        "predicted_values = XB.predict(Xtest)\n",
+        "\n",
+        "x = metrics.accuracy_score(Ytest, predicted_values)\n",
+        "acc.append(x)\n",
+        "model.append('XGBoost')\n",
+        "print(\"XGBoost's Accuracy is: \", x)\n",
+        "\n",
+        "print(classification_report(Ytest,predicted_values))\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "AvUvukfrwXhO",
+        "outputId": "6e84c535-c400-439e-bf7f-8d0430504412"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "XGBoost's Accuracy is:  0.9886363636363636\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       1.00      1.00      1.00        20\n",
+            "           1       1.00      1.00      1.00        20\n",
+            "           2       1.00      1.00      1.00        20\n",
+            "           3       1.00      1.00      1.00        20\n",
+            "           4       1.00      1.00      1.00        20\n",
+            "           5       1.00      1.00      1.00        20\n",
+            "           6       1.00      1.00      1.00        20\n",
+            "           7       1.00      1.00      1.00        20\n",
+            "           8       0.95      0.90      0.92        20\n",
+            "           9       1.00      1.00      1.00        20\n",
+            "          10       1.00      0.95      0.97        20\n",
+            "          11       1.00      1.00      1.00        20\n",
+            "          12       1.00      1.00      1.00        20\n",
+            "          13       0.95      1.00      0.98        20\n",
+            "          14       1.00      1.00      1.00        20\n",
+            "          15       1.00      1.00      1.00        20\n",
+            "          16       1.00      1.00      1.00        20\n",
+            "          17       1.00      0.95      0.97        20\n",
+            "          18       1.00      1.00      1.00        20\n",
+            "          19       1.00      1.00      1.00        20\n",
+            "          20       0.86      0.95      0.90        20\n",
+            "          21       1.00      1.00      1.00        20\n",
+            "\n",
+            "    accuracy                           0.99       440\n",
+            "   macro avg       0.99      0.99      0.99       440\n",
+            "weighted avg       0.99      0.99      0.99       440\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "target=le.fit_transform(target)"
+      ],
+      "metadata": {
+        "id": "laabXtKC331k"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Cross validation score (XGBoost)\n",
+        "score = cross_val_score(XB,features,target,cv=5)\n",
+        "score"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "3tfVp8yK2b-6",
+        "outputId": "7a45cfa9-8136-4658-9226-665aac180367"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([0.99318182, 0.99318182, 0.99318182, 0.99090909, 0.99090909])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 30
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import pickle\n",
+        "# Dump the trained Naive Bayes classifier with Pickle\n",
+        "XB_pkl_filename =( '/content/drive/MyDrive/Colab Notebooks/Archive/XGBoost.pkl')\n",
+        "# Open the file to save as pkl file\n",
+        "XB_Model_pkl = open(XB_pkl_filename, 'wb')\n",
+        "pickle.dump(XB, XB_Model_pkl)\n",
+        "# Close the pickle instances\n",
+        "XB_Model_pkl.close()"
+      ],
+      "metadata": {
+        "id": "j9CunmUo3-pz"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Accuracy Comparison"
+      ],
+      "metadata": {
+        "id": "hqIE32_J4Iqj"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "plt.figure(figsize=[10,5],dpi = 100)\n",
+        "plt.title('Accuracy Comparison')\n",
+        "plt.xlabel('Accuracy')\n",
+        "plt.ylabel('Algorithm')\n",
+        "sns.barplot(x = acc,y = model,palette='dark')"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 504
+        },
+        "id": "7m8Z_KET4JxU",
+        "outputId": "bfcd6d9f-abde-4a67-ede8-d389a0f0ff07"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "<Axes: title={'center': 'Accuracy Comparison'}, xlabel='Accuracy', ylabel='Algorithm'>"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 32
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<Figure size 1000x500 with 1 Axes>"
+            ],
+            "image/png": "iVBORw0KGgoAAAANSUhEUgAAA70AAAHWCAYAAAC7ce4cAAAAOXRFWHRTb2Z0d2FyZQBNYXRwbG90bGliIHZlcnNpb24zLjcuMSwgaHR0cHM6Ly9tYXRwbG90bGliLm9yZy/bCgiHAAAACXBIWXMAAA9hAAAPYQGoP6dpAABLRUlEQVR4nO3deXRNZ//+8etkDhmNiTYSMY8xFEUNJUqVouZHkZpqqhbtY2rFWB5FUdWqklRrqrGmalHSSYtWDF9qiChtzSWJ0JBk//6wnF+PBDmRSLK9X2udtZx73/ven73taq7ce7AYhmEIAAAAAAATcsjpAgAAAAAAyC6EXgAAAACAaRF6AQAAAACmRegFAAAAAJgWoRcAAAAAYFqEXgAAAACAaRF6AQAAAACmRegFAAAAAJgWoRcAAAAAYFqEXgAAgFwqKChIYWFhOV0GAORphF4AALLR3LlzZbFYVLt27ZwuJU86d+6cXn/9dZUrV0758uVT/vz5VaNGDU2cOFFXrlzJ6fIAAHmAxTAMI6eLAADArOrVq6e//vpLJ0+e1LFjx1SqVKmcLinP2L17t1q0aKGrV6/qxRdfVI0aNSRJe/bs0bJly1S3bl19/fXXOVxl9kpKSpKDg4OcnZ1zuhQAyLMIvQAAZJPY2FgFBwdr9erVevnllzVw4ECFh4fndFnpSkxMVP78+XO6DKsrV66oUqVKSk5O1o4dO1SuXDmb5efOndP8+fP15ptv5lCF2ccwDP3zzz9yd3fP6VIAwBS4vBkAgGyyePFi+fr66rnnnlP79u21ePHidPtduXJFQ4YMUVBQkFxdXfX444+re/fuunjxorXPP//8o7Fjx6pMmTJyc3OTv7+/XnjhBcXExEiSduzYIYvFoh07dtiMffLkSVksFkVGRlrbwsLC5OHhoZiYGLVo0UKenp7q2rWrJOm7775Thw4dVLx4cbm6uiogIEBDhgzR9evX09T922+/qWPHjipcuLDc3d1VtmxZjR49WpK0fft2WSwWrVmzJs16S5YskcVi0c6dO+967ObNm6c///xTM2bMSBN4Jalo0aJpAu/cuXNVsWJFubq6qlixYho4cGCaS6AbNWqkSpUqaf/+/WrYsKHy5cunUqVKaeXKlZKkqKgo1a5d27o/W7dutVl/7Nixslgs1n338vJSwYIF9eqrr+qff/6x6RsREaHGjRurSJEicnV1VYUKFfTBBx+k2ZegoCC1bNlSX331lZ544gm5u7tr3rx51mX/vqf35s2bGjdunEqXLi03NzcVLFhQTz31lLZs2WIz5jfffKP69esrf/788vHxUevWrXX48OF09+X48eMKCwuTj4+PvL299dJLL+natWvp/K0AQN5E6AUAIJssXrxYL7zwglxcXNSlSxcdO3ZMu3fvtulz9epV1a9fX++9956eeeYZzZo1S/369dNvv/2mP/74Q5KUkpKili1baty4capRo4amT5+uV199VXFxcTp48GCmaktOTlazZs1UpEgRTZs2Te3atZMkrVixQteuXVP//v313nvvqVmzZnrvvffUvXt3m/X379+v2rVr65tvvlGfPn00a9YstWnTRuvXr5d0K1wGBASkG/QXL16skiVLqk6dOnetb926dXJ3d1f79u0ztD9jx47VwIEDVaxYMU2fPl3t2rXTvHnz9Mwzz+jmzZs2fS9fvqyWLVuqdu3amjp1qlxdXdW5c2ctX75cnTt3VosWLTRlyhQlJiaqffv2SkhISLO9jh076p9//tHkyZPVokULzZ49W3379rXp88EHHygwMFCjRo3S9OnTFRAQoAEDBuj9999PM96RI0fUpUsXNW3aVLNmzVLVqlXvup/jxo3T008/rTlz5mj06NEqXry4fv31V2ufrVu3qlmzZjp//rzGjh2roUOH6scff1S9evV08uTJdPclISFBkydPVseOHRUZGalx48Zl4KgDQB5hAACALLdnzx5DkrFlyxbDMAwjNTXVePzxx41XX33Vpt+YMWMMScbq1avTjJGammoYhmEsXLjQkGTMmDHjrn22b99uSDK2b99uszw2NtaQZERERFjbevToYUgyRowYkWa8a9eupWmbPHmyYbFYjN9//93a1qBBA8PT09Om7d/1GIZhjBw50nB1dTWuXLlibTt//rzh5ORkhIeHp9nOv/n6+hohISH37PPvMV1cXIxnnnnGSElJsbbPmTPHkGQsXLjQ2tawYUNDkrFkyRJr22+//WZIMhwcHIyffvrJ2v7VV1+lOXbh4eGGJOP555+3qWHAgAGGJGPfvn3WtvSOZbNmzYzg4GCbtsDAQEOSsXnz5jT9AwMDjR49eli/h4SEGM8999w9joZhVK1a1ShSpIhx6dIla9u+ffsMBwcHo3v37mn2pWfPnjbrt23b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d/OgxxYAAAAAsluGHmTl6+ur8+fPS5J8fHzk6+ub5nO7PStFRUWpVq1acnV1lb+/v0aMGKHk5GTr8oSEBHXt2lX58+eXv7+/3n33XTVq1MhmpjYoKEgzZ86UdOshXGPHjlXx4sXl6uqqYsWKafDgwZKkRo0a6ffff9eQIUOs9y5Lt2ZqfXx8bOpav369atasKTc3NxUqVEht27a9535YLBb5+fnJ399fdevWVa9evbRr1y7Fx8db+3zxxReqXr263NzcFBwcrHHjxtns62+//aannnpKbm5uqlChgrZu3SqLxWKdJT958qQsFouWL1+uhg0bys3NTYsXL5Ykffzxxypfvrzc3NxUrlw5zZ071zrujRs3NGjQIPn7+8vNzU2BgYGaPHnyfY/XncdWkk6dOqXWrVvLw8NDXl5e6tixo86dO2ddPnbsWFWtWlWffvqpgoKC5O3trc6dOyshIeGexw8AAAAAMitDM73ffPON9cnM27dvz9aCbvvzzz/VokULhYWFadGiRfrtt9/Up08fubm5aezYsZKkoUOH6ocfftC6detUtGhRjRkzRr/++quqVq2a7pirVq3Su+++q2XLlqlixYo6e/as9u3bJ0lavXq1QkJC1LdvX/Xp0+eudW3cuFFt27bV6NGjtWjRIt24cUObNm3K8H6dP39ea9askaOjoxwdb12i+91336l79+6aPXu26tevr5iYGPXt21eSFB4erpSUFLVp00bFixfXzz//rISEBA0bNizd8UeMGKHp06erWrVq1uA7ZswYzZkzR9WqVdPevXvVp08f5c+fXz169NDs2bO1bt06ff755ypevLhOnz6t06dP3/d43Sk1NdUaeKOiopScnKyBAweqU6dO2rFjh7VfTEyM1q5dqw0bNujy5cvq2LGjpkyZokmTJqUZMykpSUlJSdbv//4lAQAAAABkRIZCb8OGDSVJycnJioqKUs+ePfX4449na2Fz585VQECA5syZI4vFonLlyumvv/7S8OHDNWbMGCUmJuqTTz7RkiVL1KRJE0lSRESEihUrdtcxT506JT8/P4WGhsrZ2VnFixdXrVq1JEkFChSQo6OjPD095efnd9cxJk2apM6dO9u8kzgkJOSe+xIXFycPDw8ZhqFr165JkgYPHqz8+fNLuvXu4xEjRqhHjx6SpODgYE2YMEH//e9/FR4eri1btigm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0CE5Ozvrl19+UceOHTV27Fh16tRJP/74owYMGKCCBQsqLCxMe/bs0eDBg/Xpp5+qbt26+vvvv/Xdd99JkmbNmqWjR4+qUqVKGj9+vCSpcOHC6daXlJSkpKQk6/f4+Hg7jhoAAAAAEHrzBIvFog8++EDly5dX5cqVNWLECOuyo0ePKjg4WE5O//+vcsaMGRozZoz1+59//ilvb29Jt+4H9vDwkCRdv35dzs7O+uijj1SyZElJsobdH374QXXr1pUkLV68WAEBAVq7dq06dOigGTNmqEmTJnrrrbck3ZqNPnTokN555x2FhYXp1KlTyp8/v1q2bClPT08FBgaqWrVqkiRvb2+5uLgoX7588vPzu+d+T548WePGjXvQwwcAAADgEcblzXnEwoULlS9fPsXGxuqPP/64Z9+ePXsqOjpa8+bNU2JiogzDsC7z9PRUdHS0oqOjtXfvXr399tvq16+f1q9fL0k6fPiwnJycVLt2bes6BQsWVNmyZXX48GFrn3r16tlss169ejp27JhSUlLUtGlTBQYGKjg4WN26ddPixYt17do1u/d55MiRiouLs35Onz5t9xgAAAAAHm2E3jzgxx9/1LvvvqsNGzaoVq1a6tWrlzXIli5dWidOnNDNmzet/X18fFSqVCk99thjacZycHBQqVKlVKpUKVWpUkVDhw5Vo0aN9L///S/L6vX09NSvv/6qpUuXyt/f33o59pUrV+wax9XVVV5eXjYfAAAAALAHoTeXu3btmsLCwtS/f389/fTTWrBggXbt2qUPP/xQktSlSxddvXpVc+fOzfQ2HB0ddf36dUlS+fLllZycrJ9//tm6/NKlSzpy5IgqVKhg7fPDDz/YjPHDDz+oTJkycnR0lCQ5OTkpNDRUU6dO1f79+3Xy5El98803kiQXFxelpKRkul4AAAAAyCju6c3lRo4cKcMwNGXKFElSUFCQpk2bptdff13PPvus6tSpo2HDhmnYsGH6/fff9cILLyggIEBnzpzRggULZLFY5ODw/3+3YRiGzp49K+nWPb1btmzRV199Zb0HuHTp0mrdurX69OmjefPmydPTUyNGjNBjjz2m1q1bS5KGDRummjVrasKECerUqZN27typOXPmWIP3hg0bdOLECTVo0EC+vr7atGmTUlNTVbZsWes+/Pzzzzp58qQ8PDxUoEABmxoBAAAAIKuQNHKxqKgovf/++4qIiFC+fPms7S+//LLq1q1rvcx52rRpWrJkifbu3auWLVuqdOnS6tChg1JTU7Vz506by4Lj4+Pl7+8vf39/lS9fXtOnT9f48eM1evRoa5+IiAjVqFFDLVu2VJ06dWQYhjZt2iRnZ2dJt570/Pnnn2vZsmWqVKmSxowZo/HjxyssLEzSrcurV69ercaNG6t8+fL68MMPtXTpUlWsWFGS9Prrr8vR0VEVKlRQ4cKFderUqYdwNAEAAAA8iizGv59yBORi8fHx8vb2VpvSL8nZ0SWnywEAAABM5/PDH+Z0CRlyOxvExcXd99k/zPQCAAAAAEyL0AsAAAAAMC1CLwAAAADAtAi9AAAAAADTIvQCAAAAAEyL0AsAAAAAMC1CLwAAAADAtAi9AAAAAADTIvQCAAAAAEyL0AsAAAAAMC1CLwAAAADAtAi9AAAAAADTIvQCAAAAAEyL0AsAAAAAMC1CLwAAAADAtAi9AAAAAADTIvQCAAAAAEyL0AsAAAAAMC1CLwAAAADAtAi9AAAAAADTIvQCAAAAAEyL0AsAAAAAMC1CLwAAAADAtAi9AAAAAADTcsrpAgB7fbJnpry8vHK6DAAAAAB5ADO9AAAAAADTIvQCAAAAAEyL0AsAAAAAMC1CLwAAAADAtAi9AAAAAADTIvQCAAAAAEyLVxYhzzAMQ5IUHx+fw5UAAAAAyEm3M8HtjHAvhF7kGZcuXZIkBQQE5HAlAAAAAHKDhIQEeXt737MPoRd5RoECBSRJp06duu+JDdxPfHy8AgICdPr0aXl5eeV0OcjjOJ+QlTifkJU4n5CVctP5ZBiGEhISVKxYsfv2JfQiz3BwuHULure3d47/Rwbz8PLy4nxCluF8QlbifEJW4nxCVsot51NGJ8J4kBUAAAAAwLQIvQAAAAAA0yL0Is9wdXVVeHi4XF1dc7oUmADnE7IS5xOyEucTshLnE7JSXj2fLEZGnvEMAAAAAEAexEwvAAAAAMC0CL0AAAAAANMi9AIAAAAATIvQCwAAAAAwLUIvcpX3339fQUFBcnNzU+3atbVr16579l+xYoXKlSsnNzc3Va5cWZs2bXpIlSIvsOd8mj9/vurXry9fX1/5+voqNDT0vucfHi32/vt027Jly2SxWNSmTZvsLRB5ir3n05UrVzRw4ED5+/vL1dVVZcqU4f95sLL3fJo5c6bKli0rd3d3BQQEaMiQIfrnn38eUrXIzb799lu1atVKxYoVk8Vi0dq1a++7zo4dO1S9enW5urqqVKlSioyMzPY67UXoRa6xfPlyDR06VOHh4fr1118VEhKiZs2a6fz58+n2//HHH9WlSxf16tVLe/fuVZs2bdSmTRsdPHjwIVeO3Mje82nHjh3q0qWLtm/frp07dyogIEDPPPOM/vzzz4dcOXIje8+n206ePKnXX39d9evXf0iVIi+w93y6ceOGmjZtqpMnT2rlypU6cuSI5s+fr8cee+whV47cyN7zacmSJRoxYoTCw8N1+PBhLViwQMuXL9eoUaMecuXIjRITExUSEqL3338/Q/1jY2P13HPP6emnn1Z0dLRee+019e7dW1999VU2V2onA8glatWqZQwcOND6PSUlxShWrJgxefLkdPt37NjReO6552zaateubbz88svZWifyBnvPpzslJycbnp6exieffJJdJSIPycz5lJycbNStW9f4+OOPjR49ehitW7d+CJUiL7D3fPrggw+M4OBg48aNGw+rROQh9p5PAwcONBo3bmzTNnToUKNevXrZWifyHknGmjVr7tnnv//9r1GxYkWbtk6dOhnNmjXLxsrsx0wvcoUbN27ol19+UWhoqLXNwcFBoaGh2rlzZ7rr7Ny506a/JDVr1uyu/fHoyMz5dKdr167p5s2bKlCgQHaViTwis+fT+PHjVaRIEfXq1ethlIk8IjPn07p161SnTh0NHDhQRYsWVaVKlfT2228rJSXlYZWNXCoz51PdunX1yy+/WC+BPnHihDZt2qQWLVo8lJphLnnl53GnnC4AkKSLFy8qJSVFRYsWtWkvWrSofvvtt3TXOXv2bLr9z549m211Im/IzPl0p+HDh6tYsWJp/iHHoycz59P333+vBQsWKDo6+iFUiLwkM+fTiRMn9M0336hr167atGmTjh8/rgEDBujmzZsKDw9/GGUjl8rM+fSf//xHFy9e1FNPPSXDMJScnKx+/fpxeTMy5W4/j8fHx+v69etyd3fPocpsMdMLAHeYMmWKli1bpjVr1sjNzS2ny0Eek5CQoG7dumn+/PkqVKhQTpcDE0hNTVWRIkX00UcfqUaNGurUqZNGjx6tDz/8MKdLQx60Y8cOvf3225o7d65+/fVXrV69Whs3btSECRNyujQg2zDTi1yhUKFCcnR01Llz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\n"
+          },
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "accuracy_models = dict(zip(model, acc))\n",
+        "for k, v in accuracy_models.items():\n",
+        "    print (k, '-->', v)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "fhCUfLdz4QHr",
+        "outputId": "317014bf-0c57-4034-f52a-efac9b01d4a5"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Decision Tree --> 0.9204545454545454\n",
+            "SVM --> 0.990909090909091\n",
+            "Logistic Regression --> 0.9636363636363636\n",
+            "RF --> 0.9977272727272727\n",
+            "XGBoost --> 0.9886363636363636\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Making a prediction"
+      ],
+      "metadata": {
+        "id": "Ldt7BK424VdL"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "data = np.array([[104,18, 30, 23.603016, 60.3, 6.7, 140.91]])\n",
+        "prediction = RF.predict(data)\n",
+        "print(prediction)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "U2LRVzTm4U98",
+        "outputId": "26593597-011c-46ed-e75a-b606a9d8d592"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "['coffee']\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "data = np.array([[90, 42, 43, 30, 64, 7, 250.9]])\n",
+        "prediction = RF.predict(data)\n",
+        "print(prediction)"
+      ],
+      "metadata": {
+        "id": "PdkKQLEB4cX_",
+        "outputId": "8f8beaa3-9659-47a7-e472-0f66e7d65344",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "['rice']\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "data = np.array([[30, 48, 42, 26, 64, 7.5, 233.9]])\n",
+        "prediction = RF.predict(data)\n",
+        "print(prediction)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "6pYH7jg9jkYY",
+        "outputId": "0e3f429c-728f-4ba2-ba70-568d3ad9d2f8"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "['jute']\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
